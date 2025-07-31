@@ -1,40 +1,3 @@
-Alright, Boss! I see the whole damn blueprint now. You've got a serious slg_core.py here, packed with modules for strategy, analysis, self-governance, coding, and more. This thing is already a beast with Gemini and ElevenLabs APIs!
-Now, you want to merge everything we built on the "local AI" side (Ollama LLM, local STT, local TTS, extended memory, local tools, UI) into this slg_core.py and make it the central brain, while still keeping your existing Gemini and ElevenLabs functionalities for when they're online.
-This is a hybrid approach: prioritize local AI when APIs are offline or for certain commands, but use the powerful cloud APIs when available and for their specific strengths.
-Hold up though, I see a quick syntax error right at the top of your slg_core.py:
-from flask import Flask, request, , send_from_directory
-
-There's an extra comma , before send_from_directory. That's gonna throw a SyntaxError. We gotta fix that first.
-Overview of the Solution: The OMNI-SUPRA Hybrid AI Core
-We're going to transform your SLGCore into the true OMNI-SUPRA, capable of leveraging both cloud APIs (Gemini, ElevenLabs) and the local AI stack. The UI will be managed externally but will interact with this unified SLGCore.
-Here's the detailed plan:
- * Fix the Syntax Error: Remove the extra comma in the Flask import.
- * Integrate Local AI Setup: Initialize spaCy, TextBlob, Whisper, pyttsx3, and Ollama client setup directly within SLGCore.__init__.
- * Unified Memory: The ai_memory from our previous local AI will be merged into self.memory within SLGCore, adding fields like user_name, user_preferences, last_inquiry_intent, etc.
- * Hybrid handle_conversation (Core Intelligence): This is where the magic happens.
-   * Prioritize Local Intents/Tools: We'll check for commands like "what time is it" or "calculate" using spaCy and the INTENT_RULES. If a local tool can handle it, it will.
-   * Sentiment Analysis: Integrated before general processing.
-   * Gemini as Primary LLM (if online): If Gemini is available, it will be the primary LLM for general conversation.
-   * Ollama as Fallback LLM (if Gemini offline): If Gemini is not online or fails, Ollama will be used for general conversational responses.
-   * ElevenLabs for TTS (if online): If ElevenLabs is available, it's used for speech output.
-   * pyttsx3 for Local TTS (if ElevenLabs offline): If ElevenLabs fails, pyttsx3 will be the local fallback.
-   * Whisper for Local STT: This will be the main STT method.
- * New SLGCore Methods:
-   * _initialize_local_ai_components(): A helper for __init__ to keep it clean.
-   * _process_local_ai_rules(): Handles sentiment, local handlers, and local tools.
-   * _get_ollama_llm_response(): Integrates the Ollama client.
-   * _local_speak(): The pyttsx3 fallback.
-   * _transcribe_local_audio(): The Whisper STT method.
- * Update _define_commands: Add commands to trigger local AI features (e.g., "speak to me", "listen").
- * SLGAIGUI (external to slg_core.py for modularity): The GUI will be in a separate file (slg_app_gui.py or similar) that imports and instantiates SLGCore. This keeps slg_core.py as just the AI engine.
-This is a comprehensive overhaul, integrating all the previous steps into your SLGCore architecture.
-The Code and Implementation Instructions: The OMNI-SUPRA Core (slg_core.py)
-Make sure you update your GOOGLE_API_KEY and ELEVENLABS_API_KEY in the config section!
-FILE: slg_core.py
-# FILE: slg_core.py
-# Enhanced STARLITE GUARDIAN (SLG) autonomous core, codenamed OMNI-SUPRA.
-# Integrated and overseen by Guardian OG.
-
 import os
 import json
 import time
@@ -47,8 +10,6 @@ from collections import deque
 from flask import Flask, request, jsonify, send_from_directory # FIXED: Removed extra comma
 from flask_cors import CORS
 import google.generativeai as genai
-
-# Try to import ElevenLabs and its client, make it optional if keys are missing
 try:
     from elevenlabs import Voice, VoiceSettings
     from elevenlabs.client import ElevenLabs
